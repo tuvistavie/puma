@@ -1,6 +1,6 @@
 #! /bin/sh
 ### BEGIN INIT INFO
-# Provides:          puma 
+# Provides:          puma
 # Required-Start:    $remote_fs $syslog
 # Required-Stop:     $remote_fs $syslog
 # Default-Start:     2 3 4 5
@@ -23,6 +23,7 @@ SCRIPTNAME=/etc/init.d/$NAME
 CONFIG=/etc/puma.conf
 JUNGLE=`cat $CONFIG`
 RUNPUMA=/usr/local/bin/run-puma
+PUMACTL="pumactl"
 
 # Load the VERBOSE setting and other rcS variables
 . /lib/init/vars.sh
@@ -32,7 +33,7 @@ RUNPUMA=/usr/local/bin/run-puma
 . /lib/lsb/init-functions
 
 #
-# Function that starts the jungle 
+# Function that starts the jungle
 #
 do_start() {
   log_daemon_msg "=> Running the jungle..."
@@ -105,7 +106,7 @@ do_stop_one() {
       log_daemon_msg "---> Puma $1 isn't running."
     else
       log_daemon_msg "---> About to kill PID `cat $PIDFILE`"
-      pumactl --state $STATEFILE stop
+      cd $1 && $PUMACTL --state $STATEFILE stop
       # Many daemons don't delete their pidfiles when they exit.
       rm -f $PIDFILE $STATEFILE
     fi
@@ -116,7 +117,7 @@ do_stop_one() {
 }
 
 #
-# Function that restarts the jungle 
+# Function that restarts the jungle
 #
 do_restart() {
   for i in $JUNGLE; do
@@ -132,14 +133,14 @@ do_restart_one() {
   PIDFILE=$1/tmp/puma/pid
   i=`grep $1 $CONFIG`
   dir=`echo $i | cut -d , -f 1`
-  
+
   if [ -e $PIDFILE ]; then
     log_daemon_msg "--> About to restart puma $1"
-    pumactl --state $dir/tmp/puma/state restart
+    cd $1 && $PUMACTL --state $dir/tmp/puma/state restart
     # kill -s USR2 `cat $PIDFILE`
     # TODO Check if process exist
   else
-    log_daemon_msg "--> Your puma was never playing... Let's get it out there first" 
+    log_daemon_msg "--> Your puma was never playing... Let's get it out there first"
     user=`echo $i | cut -d , -f 2`
     config_file=`echo $i | cut -d , -f 3`
     if [ "$config_file" = "" ]; then
@@ -156,7 +157,7 @@ do_restart_one() {
 }
 
 #
-# Function that statuss the jungle 
+# Function that statuss the jungle
 #
 do_status() {
   for i in $JUNGLE; do
@@ -172,14 +173,14 @@ do_status_one() {
   PIDFILE=$1/tmp/puma/pid
   i=`grep $1 $CONFIG`
   dir=`echo $i | cut -d , -f 1`
-  
+
   if [ -e $PIDFILE ]; then
     log_daemon_msg "--> About to status puma $1"
-    pumactl --state $dir/tmp/puma/state stats
+    cd $1 && $PUMACTL --state $dir/tmp/puma/state stats
     # kill -s USR2 `cat $PIDFILE`
     # TODO Check if process exist
   else
-    log_daemon_msg "--> $1 isn't there :(..." 
+    log_daemon_msg "--> $1 isn't there :(..."
   fi
 	return 0
 }
@@ -192,7 +193,7 @@ do_add() {
       str=$1
     else
       echo "The app is already being managed. Remove it if you want to update its config."
-      exit 1 
+      exit 1
     fi
   else
     echo "The directory $1 doesn't exist."
@@ -224,7 +225,7 @@ do_add() {
     str="$str,$5"
   fi
 
-  # Add it to the jungle 
+  # Add it to the jungle
   echo $str >> $CONFIG
   log_daemon_msg "Added a Puma to the jungle: $str. You still have to start it though."
 }
